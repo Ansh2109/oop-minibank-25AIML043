@@ -19,12 +19,11 @@ public class MiniBank {
 
         Scanner s = new Scanner(System.in);
         boolean run = true;
-         Account[] accounts = new Account[3];
+        Account[] accounts = new Account[3];
 
-      accounts[0] = new Account("Ansh", 5000);
-      accounts[1] = new Account("Rahul", 10000);
-      accounts[2] = new Account("Priya");
-        
+        accounts[0] = new Account("Ansh", 5000);
+        accounts[1] = new Account("Rahul", 10000);
+        accounts[2] = new Account("Priya");
 
         while (run) {
 
@@ -72,11 +71,21 @@ public class MiniBank {
                 case OPEN_ACCOUNT -> {
                     System.out.println("\nAccounts Created Successfully");
 
-                    System.out.println(accounts[0].getAccountNumber() + " | "+ accounts[0].getOwnerName() + " | Balance = " + accounts[0].getBalance());
+                    System.out.println(accounts[0]);
 
-                    System.out.println(accounts[1].getAccountNumber() + " | "+ accounts[1].getOwnerName() + " | Balance = " + accounts[1].getBalance());
+                    System.out.println(accounts[1]);
 
-                    System.out.println(accounts[2].getAccountNumber() + " | "+ accounts[2].getOwnerName() + " | Balance = " + accounts[2].getBalance());
+                    System.out.println(accounts[2]);
+                    System.out.println();
+
+                    System.out.println("Account 1 equals Account 2 : " + accounts[0].equals(accounts[1]));
+
+                    System.out.println("Account 1 equals Account 1 : " + accounts[0].equals(accounts[0]));
+                    Object obj = accounts[0];
+
+                    if (obj instanceof Account) {
+                        System.out.println("obj is an Account");
+                    }
                 }
 
                 case DEPOSIT -> {
@@ -179,13 +188,13 @@ public class MiniBank {
     }
 }
 
-
-class Customer {
+class Customer implements Cloneable {
 
     private String name;
     private String email;
     private String mobile;
     private final String customerId;
+    private Address address;
 
     private static long customerCounter = 100;
 
@@ -194,11 +203,16 @@ class Customer {
         return "CUST" + customerCounter;
     }
 
-    public Customer(String name, String email, String mobile) {
+    public Customer(String name, String email, String mobile, Address address) { 
         this.name = name;
         this.email = email;
         this.mobile = mobile;
+        this.address = address;
         this.customerId = generateCustomerId();
+    }
+
+    public Address getAddress() {
+        return address;
     }
 
     public String getName() {
@@ -215,6 +229,41 @@ class Customer {
 
     public String getCustomerId() {
         return customerId;
+    }
+
+    @Override
+    public Customer clone() {
+
+        try {
+            return (Customer) super.clone();
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+
+    public static class Address {
+
+        private String line;
+        private String city;
+        private String pincode;
+
+        public Address(String line, String city, String pincode) {
+            this.line = line;
+            this.city = city;
+            this.pincode = pincode;
+        }
+
+        public String getLine() {
+            return line;
+        }
+
+        public String getCity() {
+            return city;
+        }
+
+        public String getPincode() {
+            return pincode;
+        }
     }
 }
 
@@ -278,4 +327,29 @@ class Account {
     public boolean isActive() {
         return active;
     }
+
+    @Override
+    public String toString() {
+        return accountNumber + " | " + ownerName + " | Balance = " + balance;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (this == o)
+            return true;
+
+        if (!(o instanceof Account))
+            return false;
+
+        Account a = (Account) o;
+
+        return accountNumber.equals(a.accountNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accountNumber);
+    }
+
 }
