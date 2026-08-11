@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class MiniBank {
 
@@ -24,6 +25,33 @@ public class MiniBank {
         accounts[0] = new Account("Ansh", 5000);
         accounts[1] = new Account("Rahul", 10000);
         accounts[2] = new Account("Priya");
+
+        System.out.println("\nValidator Testing");
+
+System.out.println(Validator.isValidMobile("9876543210"));
+System.out.println(Validator.isValidMobile("12345"));
+
+System.out.println(Validator.isValidEmail("abc@xyz.com"));
+System.out.println(Validator.isValidEmail("abcxyz.com"));
+
+System.out.println(Validator.isValidPan("ABCDE1234F"));
+System.out.println(Validator.isValidPan("ABC123"));
+
+System.out.println(Validator.isValidIfsc("SBIN0001234"));
+System.out.println(Validator.isValidIfsc("SBIN123"));
+
+System.out.println(Validator.isValidAmount("500"));
+System.out.println(Validator.isValidAmount("-500"));
+
+Command command = CommandParser.parse("DEPOSIT AC0001 500");
+
+System.out.println("\nParsed Command");
+System.out.println("Type = " + command.type());
+System.out.println("Account Number = " + command.accountNumber());
+System.out.println("Amount = " + command.amount());
+
+System.out.println("\nAccount Statement");
+System.out.println(StatementFormatter.buildStatement(accounts[0]));
 
         while (run) {
 
@@ -353,3 +381,97 @@ class Account {
     }
 
 }
+class Validator {
+
+    private static final Pattern MOBILE_PATTERN =
+            Pattern.compile("[6-9][0-9]{9}");
+
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+
+    private static final Pattern PAN_PATTERN =
+            Pattern.compile("[A-Z]{5}[0-9]{4}[A-Z]");
+
+    private static final Pattern IFSC_PATTERN =
+            Pattern.compile("[A-Z]{4}0[A-Z0-9]{6}");
+
+    private static final Pattern AMOUNT_PATTERN =
+            Pattern.compile("[1-9][0-9]*");
+
+    public static boolean isValidMobile(String mobile) {
+        return MOBILE_PATTERN.matcher(mobile).matches();
+    }
+
+    public static boolean isValidEmail(String email) {
+        return EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    public static boolean isValidPan(String pan) {
+        return PAN_PATTERN.matcher(pan).matches();
+    }
+
+    public static boolean isValidIfsc(String ifsc) {
+        return IFSC_PATTERN.matcher(ifsc).matches();
+    }
+
+    public static boolean isValidAmount(String amount) {
+        return AMOUNT_PATTERN.matcher(amount).matches();
+    }
+}
+
+enum TransactionType {
+    DEPOSIT,
+    WITHDRAW,
+    TRANSFER
+}
+
+record Command(TransactionType type, String accountNumber, long amount) {
+}
+
+class CommandParser {
+
+    public static Command parse(String line) {
+
+        String[] parts = line.split(" ");
+
+        if (parts.length != 3) {
+            throw new IllegalArgumentException("Invalid command. Expected 3 parts.");
+        }
+
+        TransactionType type = TransactionType.valueOf(parts[0]);
+        String accountNumber = parts[1];
+        long amount = Long.parseLong(parts[2]);
+
+        return new Command(type, accountNumber, amount);
+    }
+}
+
+class StatementFormatter {
+
+    public static String buildStatement(Account account) {
+
+        StringBuilder statement = new StringBuilder();
+
+        statement.append("------ Account Statement ------\n");
+        statement.append("Account Number: ");
+        statement.append(account.getAccountNumber());
+        statement.append("\n");
+
+        statement.append("Owner Name: ");
+        statement.append(account.getOwnerName());
+        statement.append("\n");
+
+        statement.append("Balance: ");
+        statement.append(account.getBalance());
+        statement.append("\n");
+
+        statement.append("Active: ");
+        statement.append(account.isActive());
+        statement.append("\n");
+
+        statement.append("-------------------------------");
+
+        return statement.toString();
+    }
+}
+
