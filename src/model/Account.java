@@ -87,7 +87,7 @@ public abstract class Account implements Transactable, InterestBearing {
         return ownerName;
     }
 
-    public long getBalance() {
+    public synchronized long getBalance() {
         return balance;
     }
 
@@ -109,6 +109,17 @@ public abstract class Account implements Transactable, InterestBearing {
             throw new AccountNotFoundException("Destination account was not found.");
         }
 
+        Account first = accountNumber.compareTo(target.accountNumber) < 0 ? this : target;
+        Account second = first == this ? target : this;
+
+        synchronized (first) {
+            synchronized (second) {
+                transferWithLocksHeld(target, amount);
+            }
+        }
+    }
+
+    private void transferWithLocksHeld(Account target, long amount) throws BankException {
         if (target == this) {
             throw new InvalidAmountException("Cannot transfer to the same account.");
         }

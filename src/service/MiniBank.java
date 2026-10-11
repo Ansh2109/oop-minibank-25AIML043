@@ -91,6 +91,13 @@ public class MiniBank {
             System.out.println("Final balance = " + sharedAccount.getBalance());
         }
 
+        try {
+            runTransactionEngineDemo();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("Interrupted while running transaction demonstrations.");
+        }
+
         Account invalidAccount = new SavingsAccount("Invalid", -1000, 1000);
         String[] validationErrors = AnnotationValidator.validate(invalidAccount);
 
@@ -551,5 +558,101 @@ public class MiniBank {
         }
 
         return accounts[selection - 1];
+    }
+
+    private static void runTransactionEngineDemo() throws InterruptedException {
+        System.out.println("\nManaged Transaction Processor");
+        Account batchAccount = new SavingsAccount("Batch", 10000, 0);
+        TransactionProcessor processor = new TransactionProcessor();
+
+        for (int i = 0; i < 8; i++) {
+            processor.submit(() -> {
+                String threadName = Thread.currentThread().getName();
+                System.out.println(threadName + " processing a batch transaction.");
+                performDepositAndWithdrawal(batchAccount, 100, 50);
+            });
+        }
+
+        System.out.println("\nProducer-Consumer Transactions");
+        TransactionBuffer buffer = new TransactionBuffer(3);
+        Account bufferAccount = new SavingsAccount("Buffer", 0, 0);
+        Thread producer = new Thread(() -> {
+            System.out.println(Thread.currentThread().getName() + " started.");
+            try {
+                for (int i = 0; i < 8; i++) {
+                    buffer.put(() -> performDepositAndWithdrawal(bufferAccount, 10, 5));
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                buffer.finish();
+                System.out.println(Thread.currentThread().getName() + " finished.");
+            }
+        }, "TransactionProducer");
+
+        Thread consumer = new Thread(() -> {
+            System.out.println(Thread.currentThread().getName() + " started.");
+            try {
+                Runnable transaction;
+                while ((transaction = buffer.take()) != null) {
+                    transaction.run();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                System.out.println(Thread.currentThread().getName() + " finished.");
+            }
+        }, "TransactionConsumer");
+
+        producer.start();
+        consumer.start();
+        try {
+            producer.join();
+            consumer.join();
+        } catch (InterruptedException e) {
+            buffer.finish();
+            producer.interrupt();
+            consumer.interrupt();
+            processor.stop();
+            throw e;
+        }
+
+        System.out.println("\nOpposing Account Transfers");
+        Account accountA = new CurrentAccount("Transfer A", 5000, 10000);
+        Account accountB = new CurrentAccount("Transfer B", 5000, 10000);
+
+        processor.submit(() -> performRepeatedTransfers(accountA, accountB));
+        processor.submit(() -> performRepeatedTransfers(accountB, accountA));
+
+        processor.stop();
+        System.out.println("Batch account balance = " + batchAccount.getBalance());
+        System.out.println("Buffer account balance = " + bufferAccount.getBalance());
+        System.out.println("Transfer A balance = " + accountA.getBalance());
+        System.out.println("Transfer B balance = " + accountB.getBalance());
+    }
+
+    private static void performDepositAndWithdrawal(Account account, long deposit, long withdrawal) {
+        try {
+            account.deposit(deposit);
+            account.withdraw(withdrawal);
+        } catch (BankException e) {
+            System.out.println("Transaction failed: " + e.getMessage());
+        }
+    }
+
+    private static void performRepeatedTransfers(Account from, Account to) {
+        String threadName = Thread.currentThread().getName();
+        System.out.println(threadName + " started opposing transfers.");
+
+        for (int i = 0; i < 5000; i++) {
+            try {
+                from.transfer(to, 1);
+            } catch (BankException e) {
+                System.out.println("Transfer failed: " + e.getMessage());
+                break;
+            }
+        }
+
+        System.out.println(threadName + " finished opposing transfers.");
     }
 }

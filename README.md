@@ -14,3 +14,7 @@ javac -d out (Get-ChildItem -Recurse -Filter *.java | ForEach-Object { $_.FullNa
 ```powershell
 java -cp out service.MiniBank
 ```
+
+The program runs the concurrency demonstrations before showing the menu: a fixed
+thread pool, a wait/notify producer-consumer buffer, and opposing transfers using
+consistent account-lock ordering.
