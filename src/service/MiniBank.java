@@ -1,6 +1,10 @@
 package service;
 import java.util.*;
 
+import exception.AccountNotFoundException;
+import exception.BankException;
+import exception.InsufficientFundsException;
+import exception.InvalidAmountException;
 import model.Account;
 import model.BankInfo;
 import model.Command;
@@ -35,6 +39,10 @@ public class MiniBank {
 
         Scanner s = new Scanner(System.in);
         boolean run = true;
+
+        try (BankSession session = new BankSession()) {
+            session.start();
+        }
 
         Account[] accounts = new Account[3];
 
@@ -392,52 +400,15 @@ public class MiniBank {
                     long amount =
                             s.nextLong();
 
-                    switch (acc) {
-
-                        case 1:
-
-                            accounts[0]
-                                    .deposit(amount);
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[0]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        case 2:
-
-                            accounts[1]
-                                    .deposit(amount);
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[1]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        case 3:
-
-                            accounts[2]
-                                    .deposit(amount);
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[2]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        default:
-
-                            System.out.println(
-                                    "Invalid Account"
-                            );
+                    try {
+                        Account selected = getAccount(accounts, acc);
+                        selected.deposit(amount);
+                        System.out.println("Deposit successful.");
+                        System.out.println("Balance =" + selected.getBalance());
+                    } catch (AccountNotFoundException | InvalidAmountException e) {
+                        System.out.println(e.getMessage());
+                    } finally {
+                        System.out.println("Deposit attempt complete.");
                     }
                 }
 
@@ -474,85 +445,21 @@ public class MiniBank {
                     long amount =
                             s.nextLong();
 
-                    switch (acc) {
-
-                        case 1:
-
-                            if (accounts[0]
-                                    .withdraw(amount)) {
-
-                                System.out.println(
-                                        "Withdrawal Successful"
-                                );
-
-                            } else {
-
-                                System.out.println(
-                                        "Insufficient Balance"
-                                );
-                            }
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[0]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        case 2:
-
-                            if (accounts[1]
-                                    .withdraw(amount)) {
-
-                                System.out.println(
-                                        "Withdrawal Successful"
-                                );
-
-                            } else {
-
-                                System.out.println(
-                                        "Insufficient Balance"
-                                );
-                            }
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[1]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        case 3:
-
-                            if (accounts[2]
-                                    .withdraw(amount)) {
-
-                                System.out.println(
-                                        "Withdrawal Successful"
-                                );
-
-                            } else {
-
-                                System.out.println(
-                                        "Insufficient Balance"
-                                );
-                            }
-
-                            System.out.println(
-                                    "Balance ="
-                                            + accounts[2]
-                                            .getBalance()
-                            );
-
-                            break;
-
-                        default:
-
-                            System.out.println(
-                                    "Invalid Account"
-                            );
+                    Account selected = null;
+                    try {
+                        selected = getAccount(accounts, acc);
+                        selected.withdraw(amount);
+                        System.out.println("Withdrawal successful.");
+                    } catch (AccountNotFoundException | InvalidAmountException e) {
+                        System.out.println(e.getMessage());
+                    } catch (InsufficientFundsException e) {
+                        System.out.println(e.getMessage());
+                        System.out.println("Shortfall =" + e.getShortfall());
+                    } finally {
+                        System.out.println("Withdrawal attempt complete.");
+                        if (selected != null) {
+                            System.out.println("Balance =" + selected.getBalance());
+                        }
                     }
                 }
 
@@ -573,23 +480,25 @@ public class MiniBank {
 
                     int receiver = s.nextInt();
 
-                    if (sender < 1 || sender > 3 || receiver < 1 || receiver > 3 || sender == receiver) {
-                        System.out.println("Invalid Account Selection");
-                        break;
-                    }
-
                     System.out.print("Enter Amount:");
                     long transferAmount = s.nextLong();
 
-                    Account from = accounts[sender - 1];
-                    Account to = accounts[receiver - 1];
-
-                    if (from.transferTo(to, transferAmount)) {
+                    Account from = null;
+                    Account to = null;
+                    try {
+                        from = getAccount(accounts, sender);
+                        to = getAccount(accounts, receiver);
+                        from.transfer(to, transferAmount);
                         System.out.println("Transfer Successful");
                         System.out.println("Sender Balance =" + from.getBalance());
                         System.out.println("Receiver Balance =" + to.getBalance());
-                    } else {
-                        System.out.println("Transfer Failed");
+                    } catch (InsufficientFundsException e) {
+                        System.out.println(e.getMessage());
+                        System.out.println("Shortfall =" + e.getShortfall());
+                    } catch (BankException e) {
+                        System.out.println(e.getMessage());
+                    } finally {
+                        System.out.println("Transfer attempt complete.");
                     }
                 }
 
@@ -605,5 +514,14 @@ public class MiniBank {
         }
 
         s.close();
+    }
+
+    private static Account getAccount(Account[] accounts, int selection)
+            throws AccountNotFoundException {
+        if (selection < 1 || selection > accounts.length) {
+            throw new AccountNotFoundException("Account selection was not found.");
+        }
+
+        return accounts[selection - 1];
     }
 }

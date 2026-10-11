@@ -24,6 +24,11 @@ public class SavingsAccount extends Account implements Premium {
     @Override
     public boolean canWithdraw(long amount) {
 
-        return getBalance() - amount >= min_balance;
+        return amount > 0 && amount <= availableToWithdraw();
+    }
+
+    @Override
+    protected long availableToWithdraw() {
+        return Math.max(0, getBalance() - min_balance);
     }
 }

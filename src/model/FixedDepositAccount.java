@@ -21,4 +21,9 @@ public class FixedDepositAccount extends Account {
 
         return false;
     }
+
+    @Override
+    protected long availableToWithdraw() {
+        return 0;
+    }
 }

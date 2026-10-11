@@ -2,6 +2,10 @@ package model;
 
 import java.util.Objects;
 
+import exception.AccountNotFoundException;
+import exception.BankException;
+import exception.InsufficientFundsException;
+import exception.InvalidAmountException;
 import model.annotation.Id;
 import model.annotation.Positive;
 
@@ -40,24 +44,39 @@ public abstract class Account implements Transactable, InterestBearing {
     }
 
     @Override
-    public void deposit(long amount) {
+    public void deposit(long amount) throws InvalidAmountException {
 
-        if (amount > 0) {
-            balance += amount;
+        if (amount <= 0) {
+            throw new InvalidAmountException("Deposit amount must be greater than zero.");
         }
+
+        if (balance > Long.MAX_VALUE - amount) {
+            throw new InvalidAmountException("Deposit amount exceeds the account balance limit.");
+        }
+
+        balance += amount;
     }
 
     @Override
-    public boolean withdraw(long amount) {
+    public boolean withdraw(long amount)
+            throws InsufficientFundsException, InvalidAmountException {
 
-        if (canWithdraw(amount)) {
-
-            balance -= amount;
-
-            return true;
+        if (amount <= 0) {
+            throw new InvalidAmountException("Withdrawal amount must be greater than zero.");
         }
 
-        return false;
+        if (!canWithdraw(amount)) {
+            long available = Math.max(0, availableToWithdraw());
+            long shortfall = amount > available ? amount - available : 0;
+            throw new InsufficientFundsException(
+                    "Insufficient funds. Shortfall: " + shortfall,
+                    shortfall
+            );
+        }
+
+        balance -= amount;
+
+        return true;
     }
 
     public String getAccountNumber() {
@@ -81,24 +100,46 @@ public abstract class Account implements Transactable, InterestBearing {
 
     public abstract boolean canWithdraw(long amount);
 
-    public boolean transferTo(Account target, long amount) {
+    protected long availableToWithdraw() {
+        return Math.max(0, balance);
+    }
 
-        if (target == null || !this.isActive() || !target.isActive()) {
-            return false;
-        }
-
-        if (!this.canWithdraw(amount) || amount <= 0) {
-            return false;
+    public void transfer(Account target, long amount) throws BankException {
+        if (target == null) {
+            throw new AccountNotFoundException("Destination account was not found.");
         }
 
         if (target == this) {
-            return false;
+            throw new InvalidAmountException("Cannot transfer to the same account.");
         }
 
-        this.balance -= amount;
-        target.balance += amount;
+        if (!isActive() || !target.isActive()) {
+            throw new AccountNotFoundException("Source or destination account is inactive.");
+        }
 
-        return true;
+        if (amount <= 0) {
+            throw new InvalidAmountException("Transfer amount must be greater than zero.");
+        }
+
+        if (target.balance > Long.MAX_VALUE - amount) {
+            throw new InvalidAmountException("Transfer amount exceeds the destination balance limit.");
+        }
+
+        boolean debited = false;
+        boolean completed = false;
+
+        try {
+            withdraw(amount);
+            debited = true;
+            target.deposit(amount);
+            completed = true;
+        } catch (BankException e) {
+            throw e;
+        } finally {
+            if (debited && !completed) {
+                balance += amount;
+            }
+        }
     }
 
     @Override
