@@ -8,6 +8,7 @@ import model.CurrentAccount;
 import model.FixedDepositAccount;
 import model.SavingsAccount;
 import model.WithdrawRule;
+import model.annotation.AnnotationValidator;
 
 import util.CommandParser;
 import util.StatementFormatter;
@@ -53,6 +54,14 @@ public class MiniBank {
                 "Rahul",
                 10000
         );
+
+        Account invalidAccount = new SavingsAccount("Invalid", -1000, 1000);
+        String[] validationErrors = AnnotationValidator.validate(invalidAccount);
+
+        System.out.println("\nValidation Errors");
+        for (String error : validationErrors) {
+            System.out.println(error);
+        }
 
         System.out.println("\nAccount Interest Rates");
 
@@ -549,9 +558,39 @@ public class MiniBank {
 
                 case TRANSFER -> {
 
-                    System.out.println(
-                            "Transfer feature will be implemented later"
-                    );
+                    System.out.println("Select sender account");
+
+                    System.out.println("1. " + accounts[0].getOwnerName());
+                    System.out.println("2. " + accounts[1].getOwnerName());
+                    System.out.println("3. " + accounts[2].getOwnerName());
+
+                    int sender = s.nextInt();
+
+                    System.out.println("Select receiver account");
+                    System.out.println("1. " + accounts[0].getOwnerName());
+                    System.out.println("2. " + accounts[1].getOwnerName());
+                    System.out.println("3. " + accounts[2].getOwnerName());
+
+                    int receiver = s.nextInt();
+
+                    if (sender < 1 || sender > 3 || receiver < 1 || receiver > 3 || sender == receiver) {
+                        System.out.println("Invalid Account Selection");
+                        break;
+                    }
+
+                    System.out.print("Enter Amount:");
+                    long transferAmount = s.nextLong();
+
+                    Account from = accounts[sender - 1];
+                    Account to = accounts[receiver - 1];
+
+                    if (from.transferTo(to, transferAmount)) {
+                        System.out.println("Transfer Successful");
+                        System.out.println("Sender Balance =" + from.getBalance());
+                        System.out.println("Receiver Balance =" + to.getBalance());
+                    } else {
+                        System.out.println("Transfer Failed");
+                    }
                 }
 
                 case EXIT -> {

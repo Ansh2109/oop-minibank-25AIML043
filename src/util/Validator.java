@@ -5,21 +5,21 @@ import java.util.regex.Pattern;
 public class Validator {
 
     private static final Pattern MOBILE_PATTERN =
-            Pattern.compile("[6-9][0-9]{9}");
+            Pattern.compile("^[6-9][0-9]{9}$");
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile(
-                    "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
+                    "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
             );
 
     private static final Pattern PAN_PATTERN =
-            Pattern.compile("[A-Z]{5}[0-9]{4}[A-Z]");
+            Pattern.compile("^[A-Z]{5}[0-9]{4}[A-Z]$");
 
     private static final Pattern IFSC_PATTERN =
-            Pattern.compile("[A-Z]{4}0[A-Z0-9]{6}");
+            Pattern.compile("^[A-Z]{4}0[A-Z0-9]{6}$");
 
     private static final Pattern AMOUNT_PATTERN =
-            Pattern.compile("[1-9][0-9]*");
+            Pattern.compile("^(?:[1-9][0-9]*|0)$");
 
     public static boolean isValidMobile(String mobile) {
 

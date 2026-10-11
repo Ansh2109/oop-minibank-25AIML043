@@ -2,10 +2,15 @@ package model;
 
 import java.util.Objects;
 
+import model.annotation.Id;
+import model.annotation.Positive;
+
 public abstract class Account implements Transactable, InterestBearing {
 
+    @Id
     private final String accountNumber;
     private String ownerName;
+    @Positive
     private long balance;
     private boolean active;
 
@@ -71,9 +76,30 @@ public abstract class Account implements Transactable, InterestBearing {
         return active;
     }
 
+    @Override
     public abstract double interestRate();
 
     public abstract boolean canWithdraw(long amount);
+
+    public boolean transferTo(Account target, long amount) {
+
+        if (target == null || !this.isActive() || !target.isActive()) {
+            return false;
+        }
+
+        if (!this.canWithdraw(amount) || amount <= 0) {
+            return false;
+        }
+
+        if (target == this) {
+            return false;
+        }
+
+        this.balance -= amount;
+        target.balance += amount;
+
+        return true;
+    }
 
     @Override
     public String toString() {

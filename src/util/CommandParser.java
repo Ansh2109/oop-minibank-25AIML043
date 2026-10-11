@@ -7,7 +7,13 @@ public class CommandParser {
 
     public static Command parse(String line) {
 
-        String[] parts = line.split(" ");
+        if (line == null || line.trim().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Command cannot be empty"
+            );
+        }
+
+        String[] parts = line.trim().split("\\s+");
 
         if (parts.length != 3) {
 
@@ -17,11 +23,19 @@ public class CommandParser {
         }
 
         TransactionType type =
-                TransactionType.valueOf(parts[0]);
+                TransactionType.valueOf(parts[0].toUpperCase());
 
         String accountNumber = parts[1];
 
-        long amount = Long.parseLong(parts[2]);
+        long amount;
+
+        try {
+            amount = Long.parseLong(parts[2]);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Amount must be a valid number"
+            );
+        }
 
         return new Command(
                 type,
