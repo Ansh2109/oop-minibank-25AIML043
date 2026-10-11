@@ -63,6 +63,34 @@ public class MiniBank {
                 10000
         );
 
+        Account sharedAccount = new SavingsAccount("Concurrent", 0, 0);
+        Thread[] workers = new Thread[10];
+
+        System.out.println("\nConcurrent Deposit Test");
+        for (int i = 0; i < workers.length; i++) {
+            workers[i] = new Thread(
+                    new AccountWorker(sharedAccount, 1000, 1),
+                    "AccountWorker-" + (i + 1)
+            );
+            workers[i].start();
+        }
+
+        boolean workersCompleted = true;
+        for (Thread worker : workers) {
+            try {
+                worker.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.out.println("Interrupted while waiting for account workers.");
+                workersCompleted = false;
+                break;
+            }
+        }
+
+        if (workersCompleted) {
+            System.out.println("Final balance = " + sharedAccount.getBalance());
+        }
+
         Account invalidAccount = new SavingsAccount("Invalid", -1000, 1000);
         String[] validationErrors = AnnotationValidator.validate(invalidAccount);
 
