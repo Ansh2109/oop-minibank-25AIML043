@@ -33,6 +33,13 @@ public class SavingsAccount extends Account implements Premium, Serializable {
 
     @Override
     protected long availableToWithdraw() {
-        return Math.max(0, getBalance() - min_balance);
+        long balance = getBalance();
+        if (min_balance < 0 && balance > Long.MAX_VALUE + min_balance) {
+            return Long.MAX_VALUE;
+        }
+        if (min_balance > 0 && balance < Long.MIN_VALUE + min_balance) {
+            return 0;
+        }
+        return Math.max(0, balance - min_balance);
     }
 }

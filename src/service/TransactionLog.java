@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 
 public final class TransactionLog {
 
@@ -19,7 +20,7 @@ public final class TransactionLog {
 
         Files.write(
                 file,
-                (line + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
+                (Instant.now() + "," + line + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
         );

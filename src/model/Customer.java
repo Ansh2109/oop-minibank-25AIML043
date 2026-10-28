@@ -2,10 +2,13 @@ package model;
 
 import java.io.Serializable;
 
+import model.annotation.MaxLength;
+
 public class Customer implements Cloneable, Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @MaxLength(100)
     private String name;
     private String email;
     private String mobile;
@@ -62,8 +65,7 @@ public class Customer implements Cloneable, Serializable {
             return (Customer) super.clone();
 
         } catch (CloneNotSupportedException e) {
-
-            return null;
+            throw new AssertionError("Customer clone should always be supported.", e);
         }
     }
 

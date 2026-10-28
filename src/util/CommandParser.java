@@ -3,6 +3,8 @@ package util;
 import model.Command;
 import model.TransactionType;
 
+import java.util.Locale;
+
 public class CommandParser {
 
     public static Command parse(String line) {
@@ -23,7 +25,7 @@ public class CommandParser {
         }
 
         TransactionType type =
-                TransactionType.valueOf(parts[0].toUpperCase());
+                TransactionType.valueOf(parts[0].toUpperCase(Locale.ROOT));
 
         String accountNumber = parts[1];
 

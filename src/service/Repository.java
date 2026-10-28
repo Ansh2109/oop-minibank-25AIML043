@@ -3,14 +3,13 @@ package service;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import model.annotation.Id;
 
 public final class Repository<T> {
 
-    private final Map<String, T> entities = new HashMap<>();
+    private final HashMap<String, T> entities = new HashMap<>();
 
     public T save(T entity) {
         Objects.requireNonNull(entity, "Entity cannot be null.");

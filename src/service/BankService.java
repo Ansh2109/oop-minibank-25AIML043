@@ -27,10 +27,19 @@ public final class BankService implements AutoCloseable {
     private final Repository<Account> accounts;
     private final TransactionProcessor transactionProcessor;
     private final Path transactionLog;
+    private final Path accountCreationLog;
 
     public BankService(Repository<Account> accounts, Path transactionLog) {
+        this(accounts, transactionLog, transactionLog.resolveSibling("account-creations.log"));
+    }
+
+    public BankService(Repository<Account> accounts, Path transactionLog, Path accountCreationLog) {
         this.accounts = Objects.requireNonNull(accounts, "Account repository cannot be null.");
         this.transactionLog = Objects.requireNonNull(transactionLog, "Transaction log path cannot be null.");
+        this.accountCreationLog = Objects.requireNonNull(
+                accountCreationLog,
+                "Account creation log path cannot be null."
+        );
         transactionProcessor = new TransactionProcessor();
         ArrayList<Account> storedAccounts = accounts.findAll();
         Account.synchronizeAccountCounter(storedAccounts);
@@ -40,7 +49,7 @@ public final class BankService implements AutoCloseable {
     }
 
     public synchronized Account openAccount(String ownerName, String accountType, long openingBalance)
-            throws InvalidAmountException {
+            throws InvalidAmountException, IOException {
         if (ownerName == null || ownerName.isBlank()) {
             throw new IllegalArgumentException("Account owner name cannot be blank.");
         }
@@ -59,6 +68,7 @@ public final class BankService implements AutoCloseable {
         };
         accounts.save(account);
         transactionProcessor.addAccount(account);
+        AccountCreationLog.append(accountCreationLog, account.getAccountNumber());
         return account;
     }
 

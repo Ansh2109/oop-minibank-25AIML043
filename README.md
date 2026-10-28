@@ -18,18 +18,18 @@ mvn clean test package
 ```
 
 The JUnit tests cover successful deposits, withdrawals exceeding the available
-balance, and concurrent deposits. The build creates the runnable JAR at
-`target/minibank-1.0.0.jar`.
+balance, concurrent deposits, and batch processing. The build creates the
+runnable JAR at `target/minibank-1.0.4.jar`.
 
 ## Run
 
 ```powershell
-java -jar target/minibank-1.0.0.jar
+java -jar target/minibank-1.0.4.jar
 ```
 
 Choose a menu option to open an account, deposit, withdraw, transfer, view an
-account statement, list accounts, generate the report, or process a batch of
-deposits. Select **9** to save and exit.
+account statement, list accounts, generate the report, process a batch of
+deposits, or run the earlier lab demonstrations. Select **9** to save and exit.
 
 ## Persistence and reports
 
@@ -37,6 +37,9 @@ Data is stored relative to the directory from which the JAR is run:
 
 - `data/accounts.dat` — serialized accounts, loaded at startup and saved at exit
 - `data/logs/transactions.log` — append-only successful transaction entries
+  prefixed with an ISO-8601 UTC date and time
+- `data/logs/account-creations.log` — timestamped account-opening events,
+  kept separate from financial transactions
 - `data/end-of-day-report.txt` — deposit/withdrawal totals and log-file details
 
 The report is available from menu option **7** and is also regenerated on exit.

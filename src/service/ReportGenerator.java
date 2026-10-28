@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -49,20 +51,28 @@ public final class ReportGenerator {
                     lineNumber++;
                     String[] fields = line.trim().split("[,\\s]+");
                     try {
-                        if ("DEPOSIT".equals(fields[0]) && (fields.length == 2 || fields.length == 3)) {
+                        int transactionStart = transactionStart(fields);
+                        int transactionLength = fields.length - transactionStart;
+                        if ("DEPOSIT".equals(fields[transactionStart])
+                                && (transactionLength == 2 || transactionLength == 3)) {
                             totalDeposits = Math.addExact(
                                     totalDeposits,
                                     parseAmount(fields[fields.length - 1])
                             );
-                        } else if ("WITHDRAW".equals(fields[0]) && (fields.length == 2 || fields.length == 3)) {
+                        } else if ("WITHDRAW".equals(fields[transactionStart])
+                                && (transactionLength == 2 || transactionLength == 3)) {
                             totalWithdrawals = Math.addExact(
                                     totalWithdrawals,
                                     parseAmount(fields[fields.length - 1])
                             );
-                        } else if (fields.length == 4 && "TRANSFER".equals(fields[0])) {
-                            long amount = parseAmount(fields[3]);
+                        } else if (transactionLength == 4 && "TRANSFER".equals(fields[transactionStart])) {
+                            long amount = parseAmount(fields[fields.length - 1]);
                             totalWithdrawals = Math.addExact(totalWithdrawals, amount);
                             totalDeposits = Math.addExact(totalDeposits, amount);
+                        } else if (transactionLength == 2
+                                && "ACCOUNT_OPENED".equals(fields[transactionStart])
+                                && !fields[transactionStart + 1].isBlank()) {
+                            // Account creation events are audited separately and do not affect money totals.
                         } else {
                             throw new IllegalArgumentException("Unrecognized transaction entry.");
                         }
@@ -90,6 +100,28 @@ public final class ReportGenerator {
             Files.createDirectories(parent);
         }
         Files.writeString(reportFile, report.toString(), StandardCharsets.UTF_8);
+    }
+
+    private static int transactionStart(String[] fields) {
+        if (fields.length > 0 && isTransactionType(fields[0])) {
+            return 0;
+        }
+        if (fields.length > 1 && isTransactionType(fields[1])) {
+            try {
+                OffsetDateTime.parse(fields[0]);
+                return 1;
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid transaction timestamp: " + fields[0], e);
+            }
+        }
+        throw new IllegalArgumentException("Unrecognized transaction entry.");
+    }
+
+    private static boolean isTransactionType(String value) {
+        return "DEPOSIT".equals(value)
+                || "WITHDRAW".equals(value)
+                || "TRANSFER".equals(value)
+                || "ACCOUNT_OPENED".equals(value);
     }
 
     private static long parseAmount(String value) {

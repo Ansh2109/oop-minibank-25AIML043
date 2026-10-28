@@ -33,6 +33,13 @@ public class CurrentAccount extends Account implements Serializable {
 
     @Override
     protected long availableToWithdraw() {
-        return Math.max(0, getBalance() + overdraft_limit);
+        long balance = getBalance();
+        if (overdraft_limit > 0 && balance > Long.MAX_VALUE - overdraft_limit) {
+            return Long.MAX_VALUE;
+        }
+        if (overdraft_limit < 0 && balance < Long.MIN_VALUE - overdraft_limit) {
+            return 0;
+        }
+        return Math.max(0, balance + overdraft_limit);
     }
 }

@@ -107,6 +107,13 @@ public abstract class Account implements Transactable, InterestBearing, Serializ
         return ownerName;
     }
 
+    public void renameOwner(String ownerName) {
+        if (ownerName == null || ownerName.isBlank()) {
+            throw new IllegalArgumentException("Account owner name cannot be blank.");
+        }
+        this.ownerName = ownerName.trim();
+    }
+
     public synchronized long getBalance() {
         return balance;
     }

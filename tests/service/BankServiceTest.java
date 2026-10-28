@@ -1,8 +1,13 @@
 package service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +23,10 @@ import exception.InsufficientFundsException;
 import exception.InvalidAmountException;
 import model.Account;
 import model.CurrentAccount;
+import model.Customer;
 import model.SavingsAccount;
+import model.annotation.AnnotationValidator;
+import util.Validator;
 
 class BankServiceTest {
 
@@ -110,5 +118,77 @@ class BankServiceTest {
             );
             assertEquals(Long.MAX_VALUE - 5, account.getBalance());
         }
+    }
+
+    @Test
+    void validatorsRejectNullAndAccountLimitsDoNotOverflow() throws Exception {
+        assertFalse(Validator.isValidMobile(null));
+        assertFalse(Validator.isValidEmail(null));
+        assertFalse(Validator.isValidPan(null));
+        assertFalse(Validator.isValidIfsc(null));
+        assertFalse(Validator.isValidAmount(null));
+
+        CurrentAccount current = new CurrentAccount("Limit test", Long.MAX_VALUE, 10);
+        assertTrue(current.canWithdraw(Long.MAX_VALUE));
+
+        SavingsAccount savings = new SavingsAccount("Savings limit test", Long.MIN_VALUE, Long.MAX_VALUE);
+        assertFalse(savings.canWithdraw(1));
+    }
+
+    @Test
+    void maxLengthAnnotationIsReadFromCustomerFields() {
+        Customer customer = new Customer(
+                "X".repeat(101),
+                "long@example.com",
+                "9876543210",
+                new Customer.Address("1 Bank Street", "Anand", "388001")
+        );
+
+        assertEquals(1, AnnotationValidator.validate(customer).length);
+    }
+
+    @Test
+    void timestampedTransactionsAreLoggedAndLegacyLogsStillReport() throws IOException {
+        Path log = tempDirectory.resolve("transactions.log");
+        Path accountLog = tempDirectory.resolve("account-creations.log");
+        Files.writeString(
+                log,
+                "DEPOSIT,AC0001,10" + System.lineSeparator()
+                        + "WITHDRAW,AC0002,5" + System.lineSeparator(),
+                StandardCharsets.UTF_8
+        );
+        TransactionLog.append(log, "TRANSFER,AC0001,AC0002,25");
+        AccountCreationLog.append(accountLog, "AC0003");
+
+        String[] entries = Files.readString(log, StandardCharsets.UTF_8).split("\\R");
+        assertTrue(entries[2].matches("\\d{4}-\\d{2}-\\d{2}T[^,]+Z,TRANSFER,AC0001,AC0002,25"));
+        assertTrue(Files.readString(accountLog, StandardCharsets.UTF_8)
+                .matches("(?s)\\d{4}-\\d{2}-\\d{2}T[^,]+Z,ACCOUNT_OPENED,AC0003\\R?"));
+
+        Path report = tempDirectory.resolve("report.txt");
+        ReportGenerator.generate(tempDirectory, report);
+        String reportText = Files.readString(report, StandardCharsets.UTF_8);
+        assertTrue(reportText.contains("Total deposits: 35"));
+        assertTrue(reportText.contains("Total withdrawals: 30"));
+    }
+
+    @Test
+    void openingAnAccountWritesOnlyToAccountCreationLog() throws Exception {
+        Repository<Account> repository = new Repository<>();
+        Path transactionLog = tempDirectory.resolve("transactions.log");
+        Path accountCreationLog = tempDirectory.resolve("account-creations.log");
+
+        try (BankService bank = new BankService(repository, transactionLog, accountCreationLog)) {
+            Account opened = bank.openAccount("New customer", "SAVINGS", 500);
+            assertTrue(Files.readString(accountCreationLog, StandardCharsets.UTF_8)
+                    .contains(",ACCOUNT_OPENED," + opened.getAccountNumber()));
+            assertFalse(Files.exists(transactionLog));
+        }
+
+        Path report = tempDirectory.resolve("report.txt");
+        ReportGenerator.generate(tempDirectory, report);
+        String reportText = Files.readString(report, StandardCharsets.UTF_8);
+        assertTrue(reportText.contains("Total deposits: 0"));
+        assertTrue(reportText.contains("Total withdrawals: 0"));
     }
 }
