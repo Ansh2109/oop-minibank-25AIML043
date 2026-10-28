@@ -1,5 +1,6 @@
 package model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import exception.AccountNotFoundException;
@@ -9,7 +10,9 @@ import exception.InvalidAmountException;
 import model.annotation.Id;
 import model.annotation.Positive;
 
-public abstract class Account implements Transactable, InterestBearing {
+public abstract class Account implements Transactable, InterestBearing, Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     private final String accountNumber;

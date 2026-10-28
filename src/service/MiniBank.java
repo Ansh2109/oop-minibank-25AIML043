@@ -1,4 +1,7 @@
 package service;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import exception.AccountNotFoundException;
@@ -30,7 +33,7 @@ public class MiniBank {
         EXIT
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         BankInfo bank = new BankInfo(
                 "MiniBank",
@@ -44,24 +47,26 @@ public class MiniBank {
             session.start();
         }
 
-        Account[] accounts = new Account[3];
+        Path dataDirectory = Path.of("data");
+        Path stateFile = dataDirectory.resolve("accounts.dat");
+        Path logsDirectory = dataDirectory.resolve("logs");
+        Path transactionLog = logsDirectory.resolve("transactions.log");
+        Path reportFile = dataDirectory.resolve("end-of-day-report.txt");
 
-        accounts[0] = new SavingsAccount(
-                "Ansh",
-                5000,
-                2000
-        );
-
-        accounts[1] = new CurrentAccount(
-                "Priyanka",
-                15000,
-                3000
-        );
-
-        accounts[2] = new FixedDepositAccount(
-                "Rahul",
-                10000
-        );
+        Account[] accounts;
+        if (Files.exists(stateFile)) {
+            accounts = StatePersister.load(stateFile);
+            System.out.println("Account state loaded from " + stateFile + ".");
+        } else {
+            accounts = new Account[] {
+                    new SavingsAccount("Ansh", 5000, 2000),
+                    new CurrentAccount("Priyanka", 15000, 3000),
+                    new FixedDepositAccount("Rahul", 10000)
+            };
+            StatePersister.save(accounts, stateFile);
+            accounts = StatePersister.load(stateFile);
+            System.out.println("Initial account state saved and reloaded from " + stateFile + ".");
+        }
 
         Account sharedAccount = new SavingsAccount("Concurrent", 0, 0);
         Thread[] workers = new Thread[10];
@@ -438,6 +443,14 @@ public class MiniBank {
                     try {
                         Account selected = getAccount(accounts, acc);
                         selected.deposit(amount);
+                        try {
+                            TransactionLog.append(
+                                    transactionLog,
+                                    "DEPOSIT," + selected.getAccountNumber() + "," + amount
+                            );
+                        } catch (IOException e) {
+                            System.err.println("Deposit completed, but transaction logging failed: " + e.getMessage());
+                        }
                         System.out.println("Deposit successful.");
                         System.out.println("Balance =" + selected.getBalance());
                     } catch (AccountNotFoundException | InvalidAmountException e) {
@@ -484,6 +497,14 @@ public class MiniBank {
                     try {
                         selected = getAccount(accounts, acc);
                         selected.withdraw(amount);
+                        try {
+                            TransactionLog.append(
+                                    transactionLog,
+                                    "WITHDRAW," + selected.getAccountNumber() + "," + amount
+                            );
+                        } catch (IOException e) {
+                            System.err.println("Withdrawal completed, but transaction logging failed: " + e.getMessage());
+                        }
                         System.out.println("Withdrawal successful.");
                     } catch (AccountNotFoundException | InvalidAmountException e) {
                         System.out.println(e.getMessage());
@@ -524,6 +545,15 @@ public class MiniBank {
                         from = getAccount(accounts, sender);
                         to = getAccount(accounts, receiver);
                         from.transfer(to, transferAmount);
+                        try {
+                            TransactionLog.append(
+                                    transactionLog,
+                                    "TRANSFER," + from.getAccountNumber() + ","
+                                            + to.getAccountNumber() + "," + transferAmount
+                            );
+                        } catch (IOException e) {
+                            System.err.println("Transfer completed, but transaction logging failed: " + e.getMessage());
+                        }
                         System.out.println("Transfer Successful");
                         System.out.println("Sender Balance =" + from.getBalance());
                         System.out.println("Receiver Balance =" + to.getBalance());
@@ -548,6 +578,9 @@ public class MiniBank {
             }
         }
 
+        StatePersister.save(accounts, stateFile);
+        ReportGenerator.generate(logsDirectory, reportFile);
+        System.out.println("End-of-day report written to " + reportFile + ".");
         s.close();
     }
 
