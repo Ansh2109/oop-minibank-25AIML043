@@ -1,48 +1,53 @@
 # MiniBank
 
-## Requirements
-JDK 17+
+A Java 17 console banking application demonstrating object-oriented design,
+collections, serialization, NIO reports, repositories, exception handling, and
+safe concurrent transaction processing.
 
-## Compile
-Run these commands from the project root in PowerShell:
+## Requirements
+
+- JDK 17 or newer
+- Apache Maven 3.9 or newer
+
+## Build, test, and package
+
+From the project root:
 
 ```powershell
-javac -d out (Get-ChildItem -Recurse -Filter *.java | ForEach-Object { $_.FullName })
+mvn clean test package
 ```
+
+The JUnit tests cover successful deposits, withdrawals exceeding the available
+balance, and concurrent deposits. The build creates the runnable JAR at
+`target/minibank-1.0.0.jar`.
 
 ## Run
+
 ```powershell
-java -cp out service.MiniBank
+java -jar target/minibank-1.0.0.jar
 ```
 
-The program runs the concurrency demonstrations before showing the menu: a fixed
-thread pool, a wait/notify producer-consumer buffer, and opposing transfers using
-consistent account-lock ordering.
+Choose a menu option to open an account, deposit, withdraw, transfer, view an
+account statement, list accounts, generate the report, or process a batch of
+deposits. Select **9** to save and exit.
 
-## Persistence and transaction reporting
+## Persistence and reports
 
-On first startup, the sample accounts are saved to `data/accounts.dat` and
-reloaded before the menu is shown. Later startups load the saved accounts;
-balances are saved again on exit. Successful menu deposits, withdrawals, and
-transfers are appended to `data/logs/transactions.log`. On exit, MiniBank walks
-the logs folder and writes an end-of-day totals and file-details report to
-`data/end-of-day-report.txt`.
+Data is stored relative to the directory from which the JAR is run:
 
-Transaction log records use comma-separated `DEPOSIT,account,amount`,
-`WITHDRAW,account,amount`, and `TRANSFER,source,destination,amount` entries.
+- `data/accounts.dat` — serialized accounts, loaded at startup and saved at exit
+- `data/logs/transactions.log` — append-only successful transaction entries
+- `data/end-of-day-report.txt` — deposit/withdrawal totals and log-file details
+
+The report is available from menu option **7** and is also regenerated on exit.
 Transfers contribute to both the deposit and withdrawal totals.
 
-## Collections Framework (Milestone 2)
+## Project highlights
 
-`AccountStore` stores accounts by account number, keeps an in-memory transaction
-history, and can return accounts sorted by balance. `Account` is comparable by
-account number. The transaction processor keeps its shared accounts in a
-`ConcurrentHashMap` for thread-safe access.
-
-## Generic repository (Lab 13)
-
-`Repository<T>` stores entities using their runtime `@Id` field, including
-inherited fields. It supports save, bulk save, lookup, listing, and deletion.
-`MiniBank` demonstrates saving, finding, and listing its accounts through
-`Repository<Account>`. The repository also includes a bounded numeric average
-helper.
+- `BankService` centralizes account operations and validates amounts with
+  `Validator`.
+- `Repository<T>` stores entities by their runtime `@Id` field.
+- `TransactionProcessor` uses a `ConcurrentHashMap` and a fixed thread pool for
+  concurrent batch deposits.
+- `ReportGenerator` walks the log directory using NIO and writes the daily
+  summary.

@@ -1,6 +1,7 @@
 package model;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Objects;
 
 import exception.AccountNotFoundException;
@@ -23,14 +24,25 @@ public abstract class Account implements Transactable, InterestBearing, Serializ
 
     private static int accountCounter = 0;
 
+    public static synchronized void synchronizeAccountCounter(Collection<? extends Account> accounts) {
+        for (Account account : accounts) {
+            String accountNumber = account.getAccountNumber();
+            if (accountNumber.startsWith("AC")) {
+                accountCounter = Math.max(accountCounter, Integer.parseInt(accountNumber.substring(2)));
+            }
+        }
+    }
+
     private static String generateAccountNumber() {
 
-        accountCounter++;
+        synchronized (Account.class) {
+            accountCounter++;
 
-        return String.format(
-                "AC%04d",
-                accountCounter
-        );
+            return String.format(
+                    "AC%04d",
+                    accountCounter
+            );
+        }
     }
 
     public Account(String owner_name, long opening_balance) {

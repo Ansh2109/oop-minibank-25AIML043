@@ -1,10 +1,14 @@
 package service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import model.Account;
@@ -34,6 +38,14 @@ public class TransactionProcessor {
 
     public ArrayList<Account> getAccounts() {
         return new ArrayList<>(sharedAccounts.values());
+    }
+
+    public void processBatch(List<? extends Callable<Void>> transactions)
+            throws InterruptedException, ExecutionException {
+        List<Future<Void>> results = executor.invokeAll(transactions);
+        for (Future<Void> result : results) {
+            result.get();
+        }
     }
 
     public void stop() throws InterruptedException {
