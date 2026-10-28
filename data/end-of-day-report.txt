@@ -1,5 +1,5 @@
 End-of-Day Transaction Summary
-Total deposits: 20000
-Total withdrawals: 0
+Total deposits: 21000
+Total withdrawals: 1200
 Log files:
-transactions.log | size=22 bytes | last-modified=2026-10-28T17:30:36.3821924Z
+transactions.log | size=65 bytes | last-modified=2026-10-28T17:38:52.0522293Z

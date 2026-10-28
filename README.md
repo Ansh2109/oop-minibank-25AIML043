@@ -31,3 +31,10 @@ the logs folder and writes an end-of-day totals and file-details report to
 Transaction log records use comma-separated `DEPOSIT,account,amount`,
 `WITHDRAW,account,amount`, and `TRANSFER,source,destination,amount` entries.
 Transfers contribute to both the deposit and withdrawal totals.
+
+## Collections Framework (Milestone 2)
+
+`AccountStore` stores accounts by account number, keeps an in-memory transaction
+history, and can return accounts sorted by balance. `Account` is comparable by
+account number. The transaction processor keeps its shared accounts in a
+`ConcurrentHashMap` for thread-safe access.

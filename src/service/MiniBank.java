@@ -60,12 +60,22 @@ public class MiniBank {
         } else {
             accounts = new Account[] {
                     new SavingsAccount("Ansh", 5000, 2000),
-                    new CurrentAccount("Priyanka", 15000, 3000),
-                    new FixedDepositAccount("Rahul", 10000)
+                    new CurrentAccount("Tirth", 1500, 3000),
+                    new FixedDepositAccount("Jugal", 1000)
             };
             StatePersister.save(accounts, stateFile);
             accounts = StatePersister.load(stateFile);
             System.out.println("Initial account state saved and reloaded from " + stateFile + ".");
+        }
+
+        AccountStore accountStore = new AccountStore();
+        for (Account account : accounts) {
+            accountStore.add(account);
+        }
+
+        System.out.println("\nAccounts Sorted by Balance");
+        for (Account account : accountStore.sortedByBalance()) {
+            System.out.println(account);
         }
 
         Account sharedAccount = new SavingsAccount("Concurrent", 0, 0);
@@ -441,13 +451,12 @@ public class MiniBank {
                             s.nextLong();
 
                     try {
-                        Account selected = getAccount(accounts, acc);
+                        Account selected = getAccount(accountStore, acc);
                         selected.deposit(amount);
+                        String transaction = "DEPOSIT," + selected.getAccountNumber() + "," + amount;
+                        accountStore.addTransaction(transaction);
                         try {
-                            TransactionLog.append(
-                                    transactionLog,
-                                    "DEPOSIT," + selected.getAccountNumber() + "," + amount
-                            );
+                            TransactionLog.append(transactionLog, transaction);
                         } catch (IOException e) {
                             System.err.println("Deposit completed, but transaction logging failed: " + e.getMessage());
                         }
@@ -495,13 +504,12 @@ public class MiniBank {
 
                     Account selected = null;
                     try {
-                        selected = getAccount(accounts, acc);
+                        selected = getAccount(accountStore, acc);
                         selected.withdraw(amount);
+                        String transaction = "WITHDRAW," + selected.getAccountNumber() + "," + amount;
+                        accountStore.addTransaction(transaction);
                         try {
-                            TransactionLog.append(
-                                    transactionLog,
-                                    "WITHDRAW," + selected.getAccountNumber() + "," + amount
-                            );
+                            TransactionLog.append(transactionLog, transaction);
                         } catch (IOException e) {
                             System.err.println("Withdrawal completed, but transaction logging failed: " + e.getMessage());
                         }
@@ -542,15 +550,14 @@ public class MiniBank {
                     Account from = null;
                     Account to = null;
                     try {
-                        from = getAccount(accounts, sender);
-                        to = getAccount(accounts, receiver);
+                        from = getAccount(accountStore, sender);
+                        to = getAccount(accountStore, receiver);
                         from.transfer(to, transferAmount);
+                        String transaction = "TRANSFER," + from.getAccountNumber() + ","
+                                + to.getAccountNumber() + "," + transferAmount;
+                        accountStore.addTransaction(transaction);
                         try {
-                            TransactionLog.append(
-                                    transactionLog,
-                                    "TRANSFER," + from.getAccountNumber() + ","
-                                            + to.getAccountNumber() + "," + transferAmount
-                            );
+                            TransactionLog.append(transactionLog, transaction);
                         } catch (IOException e) {
                             System.err.println("Transfer completed, but transaction logging failed: " + e.getMessage());
                         }
@@ -578,19 +585,20 @@ public class MiniBank {
             }
         }
 
-        StatePersister.save(accounts, stateFile);
+        StatePersister.save(accountStore.getAll().toArray(new Account[0]), stateFile);
         ReportGenerator.generate(logsDirectory, reportFile);
         System.out.println("End-of-day report written to " + reportFile + ".");
         s.close();
     }
 
-    private static Account getAccount(Account[] accounts, int selection)
+    private static Account getAccount(AccountStore accountStore, int selection)
             throws AccountNotFoundException {
-        if (selection < 1 || selection > accounts.length) {
+        ArrayList<Account> accounts = accountStore.getAll();
+        if (selection < 1 || selection > accounts.size()) {
             throw new AccountNotFoundException("Account selection was not found.");
         }
 
-        return accounts[selection - 1];
+        return accounts.get(selection - 1);
     }
 
     private static void runTransactionEngineDemo() throws InterruptedException {
@@ -653,9 +661,17 @@ public class MiniBank {
         System.out.println("\nOpposing Account Transfers");
         Account accountA = new CurrentAccount("Transfer A", 5000, 10000);
         Account accountB = new CurrentAccount("Transfer B", 5000, 10000);
+        processor.addAccount(accountA);
+        processor.addAccount(accountB);
 
-        processor.submit(() -> performRepeatedTransfers(accountA, accountB));
-        processor.submit(() -> performRepeatedTransfers(accountB, accountA));
+        processor.submit(() -> performRepeatedTransfers(
+                processor.getAccount(accountA.getAccountNumber()),
+                processor.getAccount(accountB.getAccountNumber())
+        ));
+        processor.submit(() -> performRepeatedTransfers(
+                processor.getAccount(accountB.getAccountNumber()),
+                processor.getAccount(accountA.getAccountNumber())
+        ));
 
         processor.stop();
         System.out.println("Batch account balance = " + batchAccount.getBalance());
