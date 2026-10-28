@@ -38,3 +38,11 @@ Transfers contribute to both the deposit and withdrawal totals.
 history, and can return accounts sorted by balance. `Account` is comparable by
 account number. The transaction processor keeps its shared accounts in a
 `ConcurrentHashMap` for thread-safe access.
+
+## Generic repository (Lab 13)
+
+`Repository<T>` stores entities using their runtime `@Id` field, including
+inherited fields. It supports save, bulk save, lookup, listing, and deletion.
+`MiniBank` demonstrates saving, finding, and listing its accounts through
+`Repository<Account>`. The repository also includes a bounded numeric average
+helper.

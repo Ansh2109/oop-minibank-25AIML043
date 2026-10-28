@@ -60,8 +60,8 @@ public class MiniBank {
         } else {
             accounts = new Account[] {
                     new SavingsAccount("Ansh", 5000, 2000),
-                    new CurrentAccount("Tirth", 1500, 3000),
-                    new FixedDepositAccount("Jugal", 1000)
+                    new CurrentAccount("Priyanka", 1500, 3000),
+                    new FixedDepositAccount("Rahul", 1000)
             };
             StatePersister.save(accounts, stateFile);
             accounts = StatePersister.load(stateFile);
@@ -71,6 +71,16 @@ public class MiniBank {
         AccountStore accountStore = new AccountStore();
         for (Account account : accounts) {
             accountStore.add(account);
+        }
+
+        Repository<Account> accountRepository = new Repository<>();
+        accountRepository.saveAll(accounts);
+        System.out.println("\nRepository Lookup");
+        Account storedAccount = accountRepository.findById(accounts[0].getAccountNumber());
+        System.out.println("Found: " + storedAccount);
+        System.out.println("All repository accounts:");
+        for (Account account : accountRepository.findAll()) {
+            System.out.println(account);
         }
 
         System.out.println("\nAccounts Sorted by Balance");
